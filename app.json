@@ -1,0 +1,6 @@
+{ "name": "cloud-run-button-config", 
+    "options": {
+        "max-instances": 2,
+        "concurrency": 75
+    }
+}
