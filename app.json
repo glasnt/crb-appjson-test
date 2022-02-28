@@ -1,8 +1,17 @@
-{ "name": "cloud-run-button-config", 
-  "build": { 
-      "skip": true
+{
+  "name": "cloud-run-button-config",
+  "build": {
+    "skip": true
   },
-  "hooks": { 
-      "prebuild": "build.sh"
+  "options": {
+    "max-instances": 1,
+    "concurrency": 1
+  },
+  "hooks": {
+    "prebuild": {
+      "commands": [
+        "./build.sh"
+      ]
+    }
   }
 }
