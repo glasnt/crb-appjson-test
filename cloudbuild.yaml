@@ -35,8 +35,7 @@ steps:
        ${_WORKING_DIR}/cloudshell_open --repo_url=https://github.com/GoogleCloudPlatform/cloud-run-hello
 
 
- - id: integration-tests
-   dir: ${_WORKING_DIR}
+ - id: integration
    name: "google/cloud-sdk"
    entrypoint: /bin/bash
    env:
@@ -44,8 +43,9 @@ steps:
     - "SKIP_CLONE_REPORTING=true"
     - "GOOGLE_CLOUD_PROJECT=$PROJECT_ID"
     - "GOOGLE_CLOUD_REGION=${_REGION}"
+    - "WORKING_DIR=${_WORKING_DIR}"
    args:
-     - ./run_tests.sh
+     - "./run_tests.sh"
 
 substitutions:
   _VERSION: "1.14"

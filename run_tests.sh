@@ -15,8 +15,14 @@ if [ -z "$BUTTON_IMAGE" ]; then
 fi
 
 
+if [ -z "$WORKING_DIR" ]; then
+  WORKING_DIR="/workspace/cloud-run-button"
+fi
+
+
 readonly GIT_URL="https://github.com/glasnt/crb-appjson-test"
 readonly GIT_BRANCH="integration_tests"
+readonly GIT_DIR=$(echo $GIT_URL | rev | cut -d'/' -f 1 | rev)
 
 function run_test() {
   local DIR=$1
@@ -24,15 +30,19 @@ function run_test() {
   local CLEAN=$3
 
   if [ "$CLEAN" != "false" ]; then
-    in_docker "gcloud run services delete $DIR --platform=managed --project=$GOOGLE_CLOUD_PROJECT --region=$GOOGLE_CLOUD_REGION --quiet"
+    gcloud run services delete $DIR --platform=managed --project=$GOOGLE_CLOUD_PROJECT --region=$GOOGLE_CLOUD_REGION --quiet
   fi
 
-  echo "Running Cloud Run Button on $GIT_URL branch $GIT_BRANCH dir integration_tests/$DIR"
+  echo "Running Cloud Run Button on $GIT_URL branch $GIT_BRANCH dir tests/$DIR"
 
-  /bin/cloudshell_open --project=$GOOGLE_CLOUD_PROJECT --region=$GOOGLE_CLOUD_REGION \
-    --repo_url=$GIT_URL --git_branch=$GIT_BRANCH --dir=integration_tests/$DIR
+  echo ${WORKING_DIR}/cloudshell_open --repo_url=$GIT_URL --git_branch=$GIT_BRANCH --dir=integration_tests/$DIR
+
+  ${WORKING_DIR}/cloudshell_open --repo_url="$GIT_URL" --git_branch="$GIT_BRANCH" --dir=tests/$DIR
 
   SERVICE_URL=$(gcloud run services describe $DIR --project=$GOOGLE_CLOUD_PROJECT --region=$GOOGLE_CLOUD_REGION --platform=managed --format 'value(status.url)')
+
+  echo "Cleaning up content in $GIT_DIR"
+  rm $GIT_DIR -rf
 }
 
 function expect_body() {
