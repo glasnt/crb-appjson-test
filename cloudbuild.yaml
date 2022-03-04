@@ -1,0 +1,54 @@
+steps: 
+ # temporary, for testing
+ - id: clone
+   name: gcr.io/cloud-builders/gcloud
+   entrypoint: /bin/bash
+   args: 
+    - -c
+    - | 
+      git clone -b ${_BUTTON_BRANCH} https://github.com/googlecloudplatform/cloud-run-button ${_WORKING_DIR}
+
+    
+ - id: build
+   name: golang:${_VERSION}
+   entrypoint: /bin/bash
+   dir: ${_WORKING_DIR}
+   env: 
+    - "GOPATH=/workspace"
+   args: 
+    - -c
+    - |
+      go build -o ${_WORKING_DIR}/cloudshell_open ./cmd/cloudshell_open
+  
+ - id: simple-test
+   dir: ${_WORKING_DIR}
+   name: "google/cloud-sdk"
+   entrypoint: /bin/bash
+   env:
+    - "TRUSTED_ENVIRONMENT=true"
+    - "SKIP_CLONE_REPORTING=true"
+    - "GOOGLE_CLOUD_PROJECT=$PROJECT_ID"
+    - "GOOGLE_CLOUD_REGION=${_REGION}"
+   args:
+     - "-c"
+     - |
+       ${_WORKING_DIR}/cloudshell_open --repo_url=https://github.com/GoogleCloudPlatform/cloud-run-hello
+
+
+ - id: integration-tests
+   dir: ${_WORKING_DIR}
+   name: "google/cloud-sdk"
+   entrypoint: /bin/bash
+   env:
+    - "TRUSTED_ENVIRONMENT=true"
+    - "SKIP_CLONE_REPORTING=true"
+    - "GOOGLE_CLOUD_PROJECT=$PROJECT_ID"
+    - "GOOGLE_CLOUD_REGION=${_REGION}"
+   args:
+     - ./run_tests.sh
+
+substitutions:
+  _VERSION: "1.14"
+  _WORKING_DIR: /workspace/cloud-run-button
+  _REGION: us-central1
+  _BUTTON_BRANCH: master
