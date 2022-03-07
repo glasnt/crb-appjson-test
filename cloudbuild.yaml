@@ -1,51 +1,47 @@
-steps: 
- # temporary, for testing
- - id: clone
-   name: gcr.io/cloud-builders/gcloud
-   entrypoint: /bin/bash
-   args: 
-    - -c
-    - | 
-      git clone -b ${_BUTTON_BRANCH} https://github.com/googlecloudplatform/cloud-run-button ${_WORKING_DIR}
+steps:
+  # temporary, for testing
+  - id: clone
+    name: gcr.io/cloud-builders/gcloud
+    entrypoint: /bin/bash
+    args:
+      - -c
+      - |
+        git clone -b ${_BUTTON_BRANCH} https://github.com/googlecloudplatform/cloud-run-button ${_WORKING_DIR}
 
-    
- - id: build
-   name: golang:${_VERSION}
-   entrypoint: /bin/bash
-   dir: ${_WORKING_DIR}
-   env: 
-    - "GOPATH=/workspace"
-   args: 
-    - -c
-    - |
-      go build -o ${_WORKING_DIR}/cloudshell_open ./cmd/cloudshell_open
-  
- - id: simple-test
-   dir: ${_WORKING_DIR}
-   name: "google/cloud-sdk"
-   entrypoint: /bin/bash
-   env:
-    - "TRUSTED_ENVIRONMENT=true"
-    - "SKIP_CLONE_REPORTING=true"
-    - "GOOGLE_CLOUD_PROJECT=$PROJECT_ID"
-    - "GOOGLE_CLOUD_REGION=${_REGION}"
-   args:
-     - "-c"
-     - |
-       ${_WORKING_DIR}/cloudshell_open --repo_url=https://github.com/GoogleCloudPlatform/cloud-run-hello
+  - id: build
+    name: golang:${_VERSION}
+    entrypoint: /bin/bash
+    dir: ${_WORKING_DIR}
+    env:
+      - "GOPATH=/workspace"
+    args:
+      - -c
+      - |
+        go build -o /workspace/cloudshell_open ./cmd/cloudshell_open
 
+  - name: "google/cloud-sdk"
+    entrypoint: pip
+    args: ['install', '-r', 'requirements.txt', '--user']
 
- - id: integration
-   name: "google/cloud-sdk"
-   entrypoint: /bin/bash
-   env:
-    - "TRUSTED_ENVIRONMENT=true"
-    - "SKIP_CLONE_REPORTING=true"
-    - "GOOGLE_CLOUD_PROJECT=$PROJECT_ID"
-    - "GOOGLE_CLOUD_REGION=${_REGION}"
-    - "WORKING_DIR=${_WORKING_DIR}"
-   args:
-     - "./run_tests.sh"
+  - id: empty-appjson
+    name: "google/cloud-sdk"
+    entrypoint: python3
+    env:
+      - "GOOGLE_CLOUD_PROJECT=$PROJECT_ID"
+      - "GOOGLE_CLOUD_REGION=${_REGION}"
+      - "GIT_URL=https://github.com/glasnt/crb-appjson-test"
+      - "GIT_BRANCH=integration_tests"
+    args: ["run_integration_test.py", "--directory", "empty-appjson", "--expected_text", 'hello, world']
+
+  - id: hooks-prepostcreate-inline
+    name: "google/cloud-sdk"
+    entrypoint: python3
+    env:
+      - "GOOGLE_CLOUD_PROJECT=$PROJECT_ID"
+      - "GOOGLE_CLOUD_REGION=${_REGION}"
+      - "GIT_URL=https://github.com/glasnt/crb-appjson-test"
+      - "GIT_BRANCH=integration_tests"
+    args: ["run_integration_test.py", "--directory", "hooks-prepostcreate-inline", "--expected_text", 'AB']
 
 substitutions:
   _VERSION: "1.14"
