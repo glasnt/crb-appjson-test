@@ -14,7 +14,7 @@ GIT_URL = os.environ.get(
 GIT_BRANCH = os.environ.get("GIT_BRANCH", "master")
 
 TESTS_DIR = "tests"
-DEBUG = True
+DEBUG_FLAG = False
 
 # Keep to Python 3.7 systems (gcloud image currently Python 3.7.3)
 GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", None)
@@ -27,10 +27,9 @@ if not GOOGLE_CLOUD_REGION:
 
 WORKING_DIR = os.environ.get("WORKING_DIR", ".")
 
-
 def debugging(*args):
     output = " ".join([str(k) for k in args])
-    if DEBUG:
+    if DEBUG_FLAG:
         print(f"🐞 {output}")
 
 
@@ -89,10 +88,10 @@ def run_shell(params, quiet=False):
 
 def clean_clone(folder_name):
     if os.path.isdir(folder_name):
-        print(f"🟨 Removing old {folder_name} code clone")
+        debugging(f"🟨 Removing old {folder_name} code clone")
         shutil.rmtree(folder_name)
 
-def deploy_service(directory, repo_url, repo_branch, clean):
+def deploy_service(directory, repo_url, repo_branch, dirty):
     """Deploy a Cloud Run service using the Cloud Run Button"""
 
     # The repo name is the last part of a github URL, without the org/user.
@@ -104,12 +103,14 @@ def deploy_service(directory, repo_url, repo_branch, clean):
 
     clean_clone(folder_name)
 
-    if clean:
-        print("🟨 Removing old {service_name} (if it exists)")
+    if not dirty:
+        debugging(f"🟨 Removing old service {service_name} (if it exists)")
         try: 
             gcloud("run", "services", "delete", service_name, "--quiet",)
         except ValueError:
             pass
+    else:  
+        print(f"🙈 Keeping the old service {service_name} (if it exists)")
 
 
     print("🟦 Pressing the Cloud Run button...")            
@@ -150,7 +151,8 @@ def print_help_msg(command):
 @click.option('--directory', help='Directory in repo to deploy')
 @click.option("--expected_status", default=200, help="Status code to expect")
 @click.option("--expected_text", help="Text in service to expect")
-@click.option("--clean", is_flag=True, default=False, help="Remove service if it already exists before deploying")
+@click.option("--dirty", is_flag=True, default=False, help="Keep existing service")
+@click.option("--debug", is_flag=True, default=False, help="Debuggening")
 def run_test(
     description="Test",
     directory=None,
@@ -158,12 +160,15 @@ def run_test(
     repo_branch=GIT_BRANCH,
     expected_status=200,
     expected_text=False,
-    clean=False,
+    dirty=False,
+    debug=False,
 ):
     """Run service tests.
 
     Takes a repo url (defaulting to the button's own repo), and an optional directory.
     Deploys the service with the Cloud Run Button, and checks the body and status of the resulting service."""
+
+    DEBUG_FLAG = debug
 
     if not directory and not repo_url:
         print_help_msg(run_test)
@@ -175,8 +180,7 @@ def run_test(
     
 
     print(f"\nRunning {description or directory or 'a test'}\nConfig: {directory or 'root'} in {repo_url} on branch {repo_branch}.")
-    print(f"⬜ Deploying service...")
-    service_url = deploy_service(directory, repo_url, repo_branch, clean)
+    service_url = deploy_service(directory, repo_url, repo_branch, dirty)
     status, body = get_url(service_url)
     print(f"⬜ Service deployed to {service_url}.")
 

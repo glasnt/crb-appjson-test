@@ -21,18 +21,7 @@ steps:
 
   - name: "google/cloud-sdk"
     entrypoint: pip
-    args: ['install', '-r', 'requirements.txt', '--user']
-
-
-#  - id: empty-appjson
-#    name: "google/cloud-sdk"
-#    entrypoint: python3
-#    env:
-#      - "GOOGLE_CLOUD_PROJECT=$PROJECT_ID"
-#      - "GOOGLE_CLOUD_REGION=${_REGION}"
-#      - "GIT_URL=https://github.com/glasnt/crb-appjson-test"
-#      - "GIT_BRANCH=integration_tests"
-#    args: ["run_integration_test.py", "--directory", "empty-appjson", "--expected_text", 'hello, world']
+    args: ["install", "-r", "requirements.txt", "--user"]
 
   - id: run tests
     name: "google/cloud-sdk"
@@ -41,21 +30,23 @@ steps:
       - "GOOGLE_CLOUD_REGION=${_REGION}"
       - "GIT_URL=https://github.com/glasnt/crb-appjson-test"
       - "GIT_BRANCH=integration_tests"
-    script: | 
-      #!/bin/bash
-      python3 run_integration_test.py --directory empty-appjson --expected_text 'hello, world'
-      python3 run_integration_test.py --directory hooks-prepostcreate-inline --expected_text 'AB'
+      - "PYTHONUNBUFFERED=true"
+    script: |
+      #!/bin/bash -e
+      python3 run_integration_test.py --description "no config" --directory empty-appjson --expected_text 'hello, world'
+      python3 run_integration_test.py --description "inline hooks" --directory hooks-prepostcreate-inline --expected_text 'AB'
 
-      python3 run_integration_test.py --directory hooks-prepostcreate-external --expected_text '3'
-      python3 run_integration_test.py --directory hooks-prepostcreate-external --expected_text '3' --clean
+      python3 run_integration_test.py --description "external hooks" --directory hooks-prepostcreate-external --expected_text '3'
+      python3 run_integration_test.py --description "external hooks, dirty" --directory hooks-prepostcreate-external --expected_text '3' --dirty
 
-      OUTPUT=python3 run_integration_test.py --directory envvars-generated
-      python3 run_integration_test.py --directory envvars-generated --clean --expected_text '$$OUTPUT'
+      python3 run_integration_test.py --description "generator" --directory envvars-generated
+      GEN_URL=$(gcloud run services describe  envvars-generated --region $GOOGLE_CLOUD_REGION --format "value(status.url)")
+      OUTPUT=$(curl $GEN_URL --silent)
+      python3 run_integration_test.py --description "generator, dirty" --directory envvars-generated --dirty --expected_text $OUTPUT
 
-      python3 run_integration_test.py --directory memory-cpu --expected_text 'hello, world'
+      python3 run_integration_test.py --description "options test - memory/cpu" --directory memory-cpu --expected_text 'hello, world'
 
-      python3 run_integration_test.py --directory options --expected_text 'hello, world'
-
+      python3 run_integration_test.py --description "options test - other configs" --directory options --expected_text 'hello, world'
 
 substitutions:
   _VERSION: "1.18"
