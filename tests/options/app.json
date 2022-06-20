@@ -1,0 +1,6 @@
+{
+    "options": {
+        "max-instances": 10,
+        "concurrency": 10
+    }
+}

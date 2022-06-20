@@ -150,7 +150,7 @@ def print_help_msg(command):
 @click.option('--directory', help='Directory in repo to deploy')
 @click.option("--expected_status", default=200, help="Status code to expect")
 @click.option("--expected_text", help="Text in service to expect")
-@click.option("--clean", default=False, help="Remove service if it already exists before deploying")
+@click.option("--clean", is_flag=True, default=False, help="Remove service if it already exists before deploying")
 def run_test(
     description="Test",
     directory=None,
